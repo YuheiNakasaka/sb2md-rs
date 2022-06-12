@@ -50,6 +50,7 @@ lazy_static! {
     static ref RGX_CODE_BLOCK_WITH_EXT: Regex = Regex::new(r"^code:[^.]*\.([^.]*)$").unwrap();
     static ref RGX_TABLE: Regex = Regex::new(r"^table:(.*)$").unwrap();
     static ref RGX_SPACED_LINE: Regex = Regex::new(r"^[\s|\t]+").unwrap();
+    static ref RGX_HEADING: Regex = Regex::new(r"^\[(\*+)\s([^\]]+)\]$").unwrap();
 }
 
 enum TokenType {
@@ -90,7 +91,6 @@ impl ToMd {
                         self.output.push_str("\n");
                     } else {
                         let texts = line.text.trim().split("\t").collect::<Vec<&str>>();
-                        println!("{:?}", texts);
                         let texts = texts.join(" | ");
                         let texts = format!("{}{}{}\n", "| ", texts, " |");
                         self.output.push_str(&texts);
@@ -108,6 +108,18 @@ impl ToMd {
                         self.token_type = TokenType::CodeBlock;
                     } else if RGX_TABLE.is_match(&line.text[..]) {
                         self.token_type = TokenType::Table;
+                    } else if RGX_HEADING.is_match(&line.text[..]) {
+                        let captures = RGX_HEADING.captures(&line.text).unwrap();
+                        let heading_level = &captures[1];
+                        let heading_level = if heading_level.len() >= 4 {
+                            1
+                        } else {
+                            5 - heading_level.len()
+                        };
+                        let heading_level = "#".repeat(heading_level);
+                        let heading_text = &captures[2];
+                        self.output
+                            .push_str(&format!("{} {}\n", heading_level, heading_text));
                     } else {
                         self.output.push_str(&format!("{}\n", line.text));
                     }
