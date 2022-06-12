@@ -48,6 +48,7 @@ impl SbRequest {
 lazy_static! {
     static ref RGX_CODE_BLOCK: Regex = Regex::new(r"^code:.+").unwrap();
     static ref RGX_CODE_BLOCK_WITH_EXT: Regex = Regex::new(r"^code:[^.]*\.([^.]*)$").unwrap();
+    static ref RGX_TABLE: Regex = Regex::new(r"^table:(.*)$").unwrap();
     static ref RGX_SPACED_LINE: Regex = Regex::new(r"^[\s|\t]+").unwrap();
 }
 
@@ -77,14 +78,23 @@ impl ToMd {
             match self.token_type {
                 TokenType::CodeBlock => {
                     if !RGX_SPACED_LINE.is_match(&line.text[..]) {
-                        self.output.push_str("```\n");
+                        self.output.push_str("```\n\n");
                         self.token_type = TokenType::Other;
                     } else {
                         self.output.push_str(&format!("{}\n", line.text));
                     }
                 }
                 TokenType::Table => {
-                    self.output.push_str(&format!("|{}|\n", line.text));
+                    if !RGX_SPACED_LINE.is_match(&line.text[..]) {
+                        self.token_type = TokenType::Other;
+                        self.output.push_str("\n");
+                    } else {
+                        let texts = line.text.trim().split("\t").collect::<Vec<&str>>();
+                        println!("{:?}", texts);
+                        let texts = texts.join(" | ");
+                        let texts = format!("{}{}{}\n", "| ", texts, " |");
+                        self.output.push_str(&texts);
+                    }
                 }
                 TokenType::Other => {
                     if RGX_CODE_BLOCK.is_match(&line.text[..]) {
@@ -96,6 +106,8 @@ impl ToMd {
                             self.output.push_str("```\n");
                         }
                         self.token_type = TokenType::CodeBlock;
+                    } else if RGX_TABLE.is_match(&line.text[..]) {
+                        self.token_type = TokenType::Table;
                     } else {
                         self.output.push_str(&format!("{}\n", line.text));
                     }
