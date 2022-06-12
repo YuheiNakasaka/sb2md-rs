@@ -1,4 +1,6 @@
 use clap::Parser;
+use lazy_static::lazy_static;
+use regex::Regex;
 use serde::Deserialize;
 use url::Url;
 
@@ -13,15 +15,13 @@ struct Cli {
     path: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 struct ScrapboxPage {
-    id: String,
     lines: Vec<ScrapboxLine>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 struct ScrapboxLine {
-    id: String,
     text: String,
 }
 
@@ -45,10 +45,72 @@ impl SbRequest {
     }
 }
 
+lazy_static! {
+    static ref RGX_CODE_BLOCK: Regex = Regex::new(r"^code:.+").unwrap();
+    static ref RGX_CODE_BLOCK_WITH_EXT: Regex = Regex::new(r"^code:[^.]*\.([^.]*)$").unwrap();
+    static ref RGX_SPACED_LINE: Regex = Regex::new(r"^[\s|\t]+").unwrap();
+}
+
+enum TokenType {
+    CodeBlock,
+    Table,
+    Other,
+}
+
+struct ToMd {
+    page: ScrapboxPage,
+    token_type: TokenType,
+    output: String,
+}
+
+impl ToMd {
+    fn new(page: ScrapboxPage) -> Self {
+        Self {
+            page,
+            token_type: TokenType::Other,
+            output: String::new(),
+        }
+    }
+
+    fn convert(&mut self) -> String {
+        for line in &self.page.lines {
+            match self.token_type {
+                TokenType::CodeBlock => {
+                    if !RGX_SPACED_LINE.is_match(&line.text[..]) {
+                        self.output.push_str("```\n");
+                        self.token_type = TokenType::Other;
+                    } else {
+                        self.output.push_str(&format!("{}\n", line.text));
+                    }
+                }
+                TokenType::Table => {
+                    self.output.push_str(&format!("|{}|\n", line.text));
+                }
+                TokenType::Other => {
+                    if RGX_CODE_BLOCK.is_match(&line.text[..]) {
+                        let captures = RGX_CODE_BLOCK_WITH_EXT.captures(&line.text);
+                        if captures.is_some() {
+                            let ext = captures.unwrap().get(1).unwrap().as_str();
+                            self.output.push_str(&format!("```{}\n", ext));
+                        } else {
+                            self.output.push_str("```\n");
+                        }
+                        self.token_type = TokenType::CodeBlock;
+                    } else {
+                        self.output.push_str(&format!("{}\n", line.text));
+                    }
+                }
+            }
+        }
+        self.output.to_owned()
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
     let sbrequest = SbRequest::new(args.path);
     let resp = sbrequest.fetch().expect("failed to fetch");
-    println!("{:?}", resp);
+    let md = ToMd::new(resp).convert();
+    println!("{}", md);
     Ok(())
 }
