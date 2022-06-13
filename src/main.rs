@@ -53,8 +53,10 @@ lazy_static! {
     static ref RGX_HEADING: Regex = Regex::new(r"^\[(\*+)\s([^\]]+)\]$").unwrap();
     static ref RGX_STRONG: Regex = Regex::new(r"\[(\*+)\s([^\]]+)\]").unwrap();
     static ref RGX_LINK_PREFIX: Regex = Regex::new(r"\[(https?://[^\s]*)\s([^\]]*)]").unwrap();
-    static ref RGX_LINK_SUFFIX: Regex = Regex::new(r"\[([^\]]*)\s(https?://[^\s]*)]").unwrap();
+    static ref RGX_LINK_SUFFIX: Regex = Regex::new(r"\[([^\]]*)\s(https?://[^\s\]]*)]").unwrap();
     static ref RGX_LIST: Regex = Regex::new(r"^([\s|\t]+)([^\s|\t]+)").unwrap();
+    static ref RGX_SB_LINK_WITH_LINK: Regex = Regex::new(r"\[([^\]]+)\]([^\(])").unwrap();
+    static ref RGX_SB_LINK_WITHOUT_LINK: Regex = Regex::new(r"\[([^\[]+)\]").unwrap();
 }
 
 enum TokenType {
@@ -133,6 +135,9 @@ impl ToMd {
                         self.output
                             .push_str(&format!("{} {}\n", heading_level, heading_text));
                     } else {
+                        // check if it includes link
+                        let has_link = RGX_LINK_PREFIX.is_match(&line.text[..])
+                            || RGX_LINK_SUFFIX.is_match(&line.text[..]);
                         // link to md
                         let replaced_text = RGX_LINK_PREFIX
                             .replace_all(&line.text[..], "[$2]($1)")
@@ -144,6 +149,16 @@ impl ToMd {
                         let replaced_text = RGX_STRONG
                             .replace_all(&replaced_text, "**$2**")
                             .into_owned();
+                        // sblink to md
+                        let replaced_text = if has_link {
+                            RGX_SB_LINK_WITH_LINK
+                                .replace_all(&replaced_text, "$1$2")
+                                .into_owned()
+                        } else {
+                            RGX_SB_LINK_WITHOUT_LINK
+                                .replace_all(&replaced_text, "$1")
+                                .into_owned()
+                        };
                         // list to md
                         let captures = RGX_LIST.captures(&replaced_text);
                         if captures.is_some() {
