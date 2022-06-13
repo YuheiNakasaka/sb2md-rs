@@ -51,6 +51,7 @@ lazy_static! {
     static ref RGX_TABLE: Regex = Regex::new(r"^table:(.*)$").unwrap();
     static ref RGX_SPACED_LINE: Regex = Regex::new(r"^[\s|\t]+").unwrap();
     static ref RGX_HEADING: Regex = Regex::new(r"^\[(\*+)\s([^\]]+)\]$").unwrap();
+    static ref RGX_STRONG: Regex = Regex::new(r"\[(\*+)\s([^\]]+)\]").unwrap();
 }
 
 enum TokenType {
@@ -120,6 +121,11 @@ impl ToMd {
                         let heading_text = &captures[2];
                         self.output
                             .push_str(&format!("{} {}\n", heading_level, heading_text));
+                    } else if RGX_STRONG.is_match(&line.text[..]) {
+                        let replaced_text = RGX_STRONG
+                            .replace_all(&line.text[..], "**$2**")
+                            .into_owned();
+                        self.output.push_str(&format!("{}\n", replaced_text));
                     } else {
                         self.output.push_str(&format!("{}\n", line.text));
                     }
