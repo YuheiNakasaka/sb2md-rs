@@ -52,6 +52,8 @@ lazy_static! {
     static ref RGX_SPACED_LINE: Regex = Regex::new(r"^[\s|\t]+").unwrap();
     static ref RGX_HEADING: Regex = Regex::new(r"^\[(\*+)\s([^\]]+)\]$").unwrap();
     static ref RGX_STRONG: Regex = Regex::new(r"\[(\*+)\s([^\]]+)\]").unwrap();
+    static ref RGX_LINK_PREFIX: Regex = Regex::new(r"\[(https?://[^\s]*)\s([^\]]*)]").unwrap();
+    static ref RGX_LINK_SUFFIX: Regex = Regex::new(r"\[([^\]]*)\s(https?://[^\s]*)]").unwrap();
 }
 
 enum TokenType {
@@ -121,13 +123,19 @@ impl ToMd {
                         let heading_text = &captures[2];
                         self.output
                             .push_str(&format!("{} {}\n", heading_level, heading_text));
-                    } else if RGX_STRONG.is_match(&line.text[..]) {
+                    } else {
+                        // link to md
+                        let replaced_text = RGX_LINK_PREFIX
+                            .replace_all(&line.text[..], "[$2]($1)")
+                            .into_owned();
+                        let replaced_text = RGX_LINK_SUFFIX
+                            .replace_all(&replaced_text, "[$1]($2)")
+                            .into_owned();
+                        // strong to md
                         let replaced_text = RGX_STRONG
-                            .replace_all(&line.text[..], "**$2**")
+                            .replace_all(&replaced_text, "**$2**")
                             .into_owned();
                         self.output.push_str(&format!("{}\n", replaced_text));
-                    } else {
-                        self.output.push_str(&format!("{}\n", line.text));
                     }
                 }
             }
