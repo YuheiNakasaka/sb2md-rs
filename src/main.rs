@@ -54,6 +54,7 @@ lazy_static! {
     static ref RGX_STRONG: Regex = Regex::new(r"\[(\*+)\s([^\]]+)\]").unwrap();
     static ref RGX_LINK_PREFIX: Regex = Regex::new(r"\[(https?://[^\s]*)\s([^\]]*)]").unwrap();
     static ref RGX_LINK_SUFFIX: Regex = Regex::new(r"\[([^\]]*)\s(https?://[^\s]*)]").unwrap();
+    static ref RGX_LIST: Regex = Regex::new(r"^([\s|\t]+)([^\s|\t]+)").unwrap();
 }
 
 enum TokenType {
@@ -78,6 +79,7 @@ impl ToMd {
     }
 
     fn convert(&mut self) -> String {
+        let mut table_header = false;
         for line in &self.page.lines {
             match self.token_type {
                 TokenType::CodeBlock => {
@@ -96,7 +98,13 @@ impl ToMd {
                         let texts = line.text.trim().split("\t").collect::<Vec<&str>>();
                         let texts = texts.join(" | ");
                         let texts = format!("{}{}{}\n", "| ", texts, " |");
-                        self.output.push_str(&texts);
+                        if table_header {
+                            self.output.push_str(&texts);
+                            self.output.push_str(&format!("{}\n", "|:--|:--|"));
+                            table_header = false;
+                        } else {
+                            self.output.push_str(&texts);
+                        }
                     }
                 }
                 TokenType::Other => {
@@ -111,6 +119,7 @@ impl ToMd {
                         self.token_type = TokenType::CodeBlock;
                     } else if RGX_TABLE.is_match(&line.text[..]) {
                         self.token_type = TokenType::Table;
+                        table_header = true;
                     } else if RGX_HEADING.is_match(&line.text[..]) {
                         let captures = RGX_HEADING.captures(&line.text).unwrap();
                         let heading_level = &captures[1];
@@ -135,7 +144,17 @@ impl ToMd {
                         let replaced_text = RGX_STRONG
                             .replace_all(&replaced_text, "**$2**")
                             .into_owned();
-                        self.output.push_str(&format!("{}\n", replaced_text));
+                        // list to md
+                        let captures = RGX_LIST.captures(&replaced_text);
+                        if captures.is_some() {
+                            let matched = captures.unwrap();
+                            let indent = "  ".repeat(&matched[1].len() - 1);
+                            let replaced_text = replaced_text.trim();
+                            self.output
+                                .push_str(&format!("{}- {}\n", indent, replaced_text));
+                        } else {
+                            self.output.push_str(&format!("{}\n", replaced_text));
+                        }
                     }
                 }
             }
