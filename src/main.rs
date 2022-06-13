@@ -178,11 +178,10 @@ impl ToMd {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() {
     let args = Cli::parse();
     let sbrequest = SbRequest::new(args.path);
     let resp = sbrequest.fetch().expect("failed to fetch");
     let md = ToMd::new(resp).convert();
     println!("{}", md);
-    Ok(())
 }
