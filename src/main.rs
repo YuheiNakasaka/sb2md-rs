@@ -54,6 +54,8 @@ lazy_static! {
     static ref RGX_STRONG: Regex = Regex::new(r"\[(\*+)\s([^\]]+)\]").unwrap();
     static ref RGX_LINK_PREFIX: Regex = Regex::new(r"\[(https?://[^\s]*)\s([^\]]*)]").unwrap();
     static ref RGX_LINK_SUFFIX: Regex = Regex::new(r"\[([^\]]*)\s(https?://[^\s\]]*)]").unwrap();
+    static ref RGX_GYAZO_IMG: Regex = Regex::new(r"\[(https://gyazo.com/[^\s\]]*)\]").unwrap();
+    static ref RGX_SB_IMG: Regex = Regex::new(r"\[(https://scrapbox.io/files/[^\s\]]*)\]").unwrap();
     static ref RGX_LIST: Regex = Regex::new(r"^([\s|\t]+)([^\s|\t]+)").unwrap();
     static ref RGX_SB_LINK_WITH_LINK: Regex = Regex::new(r"\[([^\]]+)\]([^\(])").unwrap();
     static ref RGX_SB_LINK_WITHOUT_LINK: Regex = Regex::new(r"\[([^\[]+)\]").unwrap();
@@ -138,9 +140,17 @@ impl ToMd {
                         // check if it includes link
                         let has_link = RGX_LINK_PREFIX.is_match(&line.text[..])
                             || RGX_LINK_SUFFIX.is_match(&line.text[..]);
+                        // gyazo image to md
+                        let replaced_text = RGX_GYAZO_IMG
+                            .replace_all(&line.text[..], "![]($1)")
+                            .into_owned();
+                        // scrapbox image to md
+                        let replaced_text = RGX_SB_IMG
+                            .replace_all(&replaced_text, "![]($1)")
+                            .into_owned();
                         // link to md
                         let replaced_text = RGX_LINK_PREFIX
-                            .replace_all(&line.text[..], "[$2]($1)")
+                            .replace_all(&replaced_text, "[$2]($1)")
                             .into_owned();
                         let replaced_text = RGX_LINK_SUFFIX
                             .replace_all(&replaced_text, "[$1]($2)")
