@@ -55,9 +55,9 @@ impl ToMd {
                 TokenType::Table => {
                     if !RGX_SPACED_LINE.is_match(&line.text[..]) {
                         self.token_type = TokenType::Other;
-                        self.output.push_str("\n");
+                        self.output.push('\n');
                     } else {
-                        let texts = line.text.trim().split("\t").collect::<Vec<&str>>();
+                        let texts = line.text.trim().split('\t').collect::<Vec<&str>>();
                         let texts = texts.join(" | ");
                         let texts = format!("{}{}{}\n", "| ", texts, " |");
                         if table_header {
