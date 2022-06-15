@@ -12,3 +12,11 @@ regex = "1"
 reqwest = {version = "0.11", features = ["blocking", "json"]}
 serde = {version = "1.0", features = ["derive"]}
 url = "2.2.2"
+
+[lib]
+name = "sb2md"
+path = "src/lib.rs"
+
+[[bin]]
+name = "sb2md"
+path = "src/main.rs"
