@@ -29,15 +29,10 @@ cargo run razokulover-tech-memo/scrapbox記法をmarkdownに変換するparser�
 
 ```
 use sb2md::converter::ToMd;
-use sb2md::request::{ScrapboxPage, ScrapboxLine};
 
 fn main() {
-  let page = ScrapboxPage::new(vec![
-      ScrapboxLine::new("[* Test]".to_string()),
-      ScrapboxLine::new(" test".to_string()),
-      ScrapboxLine::new("  [https://example.com/ Example]".to_string()),
-  ]);
-  let md = ToMd::new(page).convert();
+  let text = "- this is a [* test]. In details, [https://example.com/ link] should be shown. [https://scrapbox.io/files/test.png]";
+  let md = ToMd::new_by_text(text.to_string()).convert();
   println!("{}", md);
 }
 ```
