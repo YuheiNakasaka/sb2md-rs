@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use crate::request::ScrapboxPage;
+use crate::sbtype::{ScrapboxLine, ScrapboxPage};
 
 lazy_static! {
     static ref RGX_CODE_BLOCK: Regex = Regex::new(r"^code:.+").unwrap();
@@ -32,7 +32,20 @@ pub struct ToMd {
 }
 
 impl ToMd {
-    pub fn new(page: ScrapboxPage) -> Self {
+    pub fn new_by_text(text: String) -> Self {
+        let lines = text
+            .split("\n")
+            .map(|line| ScrapboxLine::new(line.to_string()))
+            .collect();
+        let page = ScrapboxPage::new(lines);
+        Self {
+            page,
+            token_type: TokenType::Other,
+            output: String::new(),
+        }
+    }
+
+    pub fn new_by_sb_page(page: ScrapboxPage) -> Self {
         Self {
             page,
             token_type: TokenType::Other,
