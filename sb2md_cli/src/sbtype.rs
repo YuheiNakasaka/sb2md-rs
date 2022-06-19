@@ -9,6 +9,15 @@ impl ScrapboxPage {
     pub fn new(lines: Vec<ScrapboxLine>) -> Self {
         Self { lines }
     }
+
+    pub fn to_text(self) -> String {
+        self.lines
+            .iter()
+            .map(|line| line.text.to_string())
+            .collect::<Vec<String>>()
+            .join("\n")
+            .to_owned()
+    }
 }
 
 #[derive(Deserialize)]

@@ -1,0 +1,12 @@
+{
+  "name": "sb2md",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:YuheiNakasaka/sb2md-rs.git",
+  "author": "YuheiNakasaka <yuhei.nakasaka@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^4.7.4",
+    "vite": "^2.9.12"
+  }
+}
