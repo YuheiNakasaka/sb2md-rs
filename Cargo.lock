@@ -658,15 +658,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3f6f92acf49d1b98f7a81226834412ada05458b7364277387724a237f062695"
 
 [[package]]
-name = "sb2md"
+name = "sb2md_cli"
 version = "0.1.0"
 dependencies = [
  "clap",
- "lazy_static",
- "regex",
  "reqwest",
+ "sb2md_converter",
  "serde",
  "url",
+]
+
+[[package]]
+name = "sb2md_converter"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "regex",
+ "wasm-bindgen",
 ]
 
 [[package]]

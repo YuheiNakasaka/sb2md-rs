@@ -1,7 +1,6 @@
 use lazy_static::lazy_static;
 use regex::Regex;
-
-use crate::sbtype::{ScrapboxLine, ScrapboxPage};
+use wasm_bindgen::prelude::*;
 
 lazy_static! {
     static ref RGX_CODE_BLOCK: Regex = Regex::new(r"^code:.+").unwrap();
@@ -25,52 +24,47 @@ pub enum TokenType {
     Other,
 }
 
+#[wasm_bindgen]
 pub struct ToMd {
-    page: ScrapboxPage,
+    lines: Vec<String>,
     token_type: TokenType,
     output: String,
 }
 
+#[wasm_bindgen]
 impl ToMd {
-    pub fn new_by_text(text: String) -> Self {
+    #[wasm_bindgen]
+    pub fn new(text: String) -> Self {
         let lines = text
             .split("\n")
-            .map(|line| ScrapboxLine::new(line.to_string()))
-            .collect();
-        let page = ScrapboxPage::new(lines);
+            .map(|line| line.to_string())
+            .collect::<Vec<String>>();
         Self {
-            page,
+            lines,
             token_type: TokenType::Other,
             output: String::new(),
         }
     }
 
-    pub fn new_by_sb_page(page: ScrapboxPage) -> Self {
-        Self {
-            page,
-            token_type: TokenType::Other,
-            output: String::new(),
-        }
-    }
-
+    #[wasm_bindgen]
     pub fn convert(&mut self) -> String {
         let mut table_header = false;
-        for line in &self.page.lines {
+        for line in &self.lines {
             match self.token_type {
                 TokenType::CodeBlock => {
-                    if !RGX_SPACED_LINE.is_match(&line.text[..]) {
+                    if !RGX_SPACED_LINE.is_match(&line[..]) {
                         self.output.push_str("```\n\n");
                         self.token_type = TokenType::Other;
                     } else {
-                        self.output.push_str(&format!("{}\n", line.text));
+                        self.output.push_str(&format!("{}\n", line));
                     }
                 }
                 TokenType::Table => {
-                    if !RGX_SPACED_LINE.is_match(&line.text[..]) {
+                    if !RGX_SPACED_LINE.is_match(&line[..]) {
                         self.token_type = TokenType::Other;
                         self.output.push('\n');
                     } else {
-                        let texts = line.text.trim().split('\t').collect::<Vec<&str>>();
+                        let texts = line.trim().split('\t').collect::<Vec<&str>>();
                         let texts = texts.join(" | ");
                         let texts = format!("{}{}{}\n", "| ", texts, " |");
                         if table_header {
@@ -83,8 +77,8 @@ impl ToMd {
                     }
                 }
                 TokenType::Other => {
-                    if RGX_CODE_BLOCK.is_match(&line.text[..]) {
-                        let captures = RGX_CODE_BLOCK_WITH_EXT.captures(&line.text);
+                    if RGX_CODE_BLOCK.is_match(&line[..]) {
+                        let captures = RGX_CODE_BLOCK_WITH_EXT.captures(&line);
                         if captures.is_some() {
                             let ext = captures.unwrap().get(1).unwrap().as_str();
                             self.output.push_str(&format!("```{}\n", ext));
@@ -92,11 +86,11 @@ impl ToMd {
                             self.output.push_str("```\n");
                         }
                         self.token_type = TokenType::CodeBlock;
-                    } else if RGX_TABLE.is_match(&line.text[..]) {
+                    } else if RGX_TABLE.is_match(&line[..]) {
                         self.token_type = TokenType::Table;
                         table_header = true;
-                    } else if RGX_HEADING.is_match(&line.text[..]) {
-                        let captures = RGX_HEADING.captures(&line.text).unwrap();
+                    } else if RGX_HEADING.is_match(&line[..]) {
+                        let captures = RGX_HEADING.captures(&line).unwrap();
                         let heading_level = &captures[1];
                         let heading_level = if heading_level.len() >= 4 {
                             1
@@ -109,12 +103,11 @@ impl ToMd {
                             .push_str(&format!("{} {}\n", heading_level, heading_text));
                     } else {
                         // check if it includes link
-                        let has_link = RGX_LINK_PREFIX.is_match(&line.text[..])
-                            || RGX_LINK_SUFFIX.is_match(&line.text[..]);
+                        let has_link = RGX_LINK_PREFIX.is_match(&line[..])
+                            || RGX_LINK_SUFFIX.is_match(&line[..]);
                         // gyazo image to md
-                        let replaced_text = RGX_GYAZO_IMG
-                            .replace_all(&line.text[..], "![]($1)")
-                            .into_owned();
+                        let replaced_text =
+                            RGX_GYAZO_IMG.replace_all(&line[..], "![]($1)").into_owned();
                         // scrapbox image to md
                         let replaced_text = RGX_SB_IMG
                             .replace_all(&replaced_text, "![]($1)")
