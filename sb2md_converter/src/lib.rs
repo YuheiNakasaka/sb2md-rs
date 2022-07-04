@@ -65,11 +65,13 @@ impl ToMd {
                         self.output.push('\n');
                     } else {
                         let texts = line.trim().split('\t').collect::<Vec<&str>>();
+                        let sep_count = texts.len();
                         let texts = texts.join(" | ");
                         let texts = format!("{}{}{}\n", "| ", texts, " |");
                         if table_header {
                             self.output.push_str(&texts);
-                            self.output.push_str(&format!("{}\n", "|:--|:--|"));
+                            self.output
+                                .push_str(&format!("|{}\n", ":--|".repeat(sep_count)));
                             table_header = false;
                         } else {
                             self.output.push_str(&texts);

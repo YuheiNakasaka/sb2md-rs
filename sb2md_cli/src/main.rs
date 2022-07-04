@@ -102,15 +102,28 @@ mod tests {
     }
 
     #[test]
-    fn test_table() {
+    fn test_single_table() {
         let text = ScrapboxPage::new(vec![
             ScrapboxLine::new("table:test".to_string()),
-            ScrapboxLine::new(" A	B".to_string()),
-            ScrapboxLine::new(" C	D".to_string()),
+            ScrapboxLine::new(" A".to_string()),
+            ScrapboxLine::new(" a".to_string()),
         ])
         .to_text();
         let md = ToMd::new(text).convert();
-        let expected = "| A | B |\n|:--|:--|\n| C | D |\n";
+        let expected = "| A |\n|:--|\n| a |\n";
+        assert_eq!(expected, &md[..]);
+    }
+
+    #[test]
+    fn test_multiple_table() {
+        let text = ScrapboxPage::new(vec![
+            ScrapboxLine::new("table:test".to_string()),
+            ScrapboxLine::new(" A	B	C".to_string()),
+            ScrapboxLine::new(" a	b	c".to_string()),
+        ])
+        .to_text();
+        let md = ToMd::new(text).convert();
+        let expected = "| A | B | C |\n|:--|:--|:--|\n| a | b | c |\n";
         assert_eq!(expected, &md[..]);
     }
 
